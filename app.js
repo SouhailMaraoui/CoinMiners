@@ -4,23 +4,28 @@ const fs = require('fs');
 const hostname = 'localhost';
 const port = 8000;
 
-const server = http.createServer(function(req, res) {
-    res.writeHead(200);
+//Create a server
+const server = http.createServer(function(request, response) {
+    //Send status code 200(OK message).
+    response.writeHead(200);
 
+    //Read index.html, return status code 404 in case no such file was found. 
     fs.readFile('index.html', function(err, html) {
         if(err)
         {
-            res.writeHead(404);
-            res.write("index.html not found");
+            response.writeHead(404);
+            response.write("index.html not found");
         }
         else
         {
-            res.write(html);
+            response.write(html);
         }
-        res.end();
+
+        response.end();
     });
   });
 
+//Start the server on hostname:port
 server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
