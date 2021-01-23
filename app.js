@@ -1,11 +1,18 @@
-const http = require('http');
+const https = require('https');
 const fs = require('fs');
 
 const hostname = 'localhost';
 const port = 8000;
 
+//Read the key and certificat 
+const options = 
+{
+    key: fs.readFileSync('certificats/key.pem'),
+    cert: fs.readFileSync('certificats/cert.pem')
+};
+
 //Create a server
-const server = http.createServer(function(request, response) {
+const server = https.createServer(options, function(request, response) {
     //Send status code 200(OK message).
     response.writeHead(200);
 
@@ -27,5 +34,5 @@ const server = http.createServer(function(request, response) {
 
 //Start the server on hostname:port
 server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+  console.log(`Server running at https://${hostname}:${port}/`);
 });
