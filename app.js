@@ -1,5 +1,7 @@
 var formidable = require('formidable');
-const axios = require('axios')
+
+const bcrypt = require('bcrypt');
+const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
 
@@ -26,17 +28,30 @@ var mtls_options =
 };
 
 //Create a www. server
-const www_server = https.createServer(tls_options, function(request, response) {
+const www_server = https.createServer(tls_options,function(request, response) {
     //Send status code 200(OK message).
     response.writeHead(200);
 
     //Read index.html, return status code 404 in case no such file was found. 
-    fs.readFile('index.html', function(err, html) {
+    fs.readFile('index.html',async function(err, html) {
         if(err){response.writeHead(404);
             	response.write("index.html not found");}
         
-        else	response.write(html);
-        
+        else	
+        {
+        	response.write(html);
+        	const pds=["password","password","qwerty"];
+        	try{
+        		for(var pd of pds)
+        		{
+		    		const salt = await bcrypt.genSalt();
+		    		const hashedPassword = await bcrypt.hash(pd, salt)
+		    		console.log(pd+" :: "+hashedPassword);
+        		}
+        	} catch {res.status(500)}
+        	
+        	
+        }
         response.end();
     });
   });
