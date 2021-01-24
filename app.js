@@ -1,8 +1,11 @@
 const formidable = require('formidable');
 const bcrypt = require('bcrypt');
+const cookie = require('cookie');
 const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
+
+const {v4:uuidv4} =require('uuid');
 
 const www_hostname = '127.0.0.2';
 const mail_hostname = '127.0.0.3';
@@ -10,7 +13,6 @@ const admin_hostname = '127.0.0.4';
 const verify_hostname = '127.0.0.5';
 const port = 443;
 
-var current_user;		//Current connected user.
 var loginMessage="";	//To display error messages for the user.
 var users = [];			//List of users as read from the database.
 
@@ -32,9 +34,18 @@ var mtls_options =
   	ca: [fs.readFileSync('certificats/server_cert.pem')]
 };
 
+var cookie_options =
+{
+	secure: true,		//Alow cookies over HTTPS only (prevents MITM attacks)
+	httpOnly: true,		//To block the ability to use document.cookie(and thus prevent XSS attacks from stealing session ID) 
+	maxAge:60 			//60sec
+};
+
 //Create a www. server
 const www_server = https.createServer(tls_options,function(request, response) {
-
+	var cookies = cookie.parse(request.headers.cookie || '');
+	var UID=cookies.UID;
+	
 	//Read users.json file 
 	var form = new formidable.IncomingForm();
     fs.readFile('users.json','utf8',function readFileCallback(err,data){
@@ -70,7 +81,9 @@ const www_server = https.createServer(tls_options,function(request, response) {
     				usr_exist=true;
     				if(await bcrypt.compare(pwd,user.pwd))
     				{
+    					console.log("old user")
     					loginMessage="";
+						response.setHeader('Set-Cookie', cookie.serialize('UID',user.UID,cookie_options));
     					response.writeHead(301,{Location: 'https://www.coinminers.com/'});
         				response.end();
     				}
@@ -87,12 +100,15 @@ const www_server = https.createServer(tls_options,function(request, response) {
     		{
     			const salt = await bcrypt.genSalt();
 				const hashedPassword = await bcrypt.hash(pwd, salt);
-				
-				current_user={
+				const UID=uuidv4();
+				const current_user={
 					"usrn": usrn,
-					"pwd": hashedPassword
+					"pwd": hashedPassword,
+					"UID": UID
 				};
     		
+				response.setHeader('Set-Cookie', cookie.serialize('UID',UID,cookie_options));
+				
     			users.push(current_user);
 				var json= JSON.stringify(users);
 				fs.writeFile("users.json",json,'utf8',function (err){});
@@ -104,20 +120,30 @@ const www_server = https.createServer(tls_options,function(request, response) {
     
     //Signout Webpage
     else if (request.url=="/signout"){
-    	current_user=null;
+    	console.log("clear");
+		response.setHeader('Set-Cookie', cookie.serialize('UID',0,cookie_options));
 		response.writeHead(301,{Location: 'https://www.coinminers.com/login'});
 		response.end();
 	}
 	
     //Home Webpage
     else {
-		if(current_user==null)
+    	var current_user=null;
+		for(var user of users)
+		{
+			if(user.UID===UID)
+			{
+				current_user=user;
+			}
+		}
+		
+		if(current_user===null)
 		{
 			response.writeHead(301,{Location: 'https://www.coinminers.com/login'});
 			response.end();
 		}
 		else 
-		{	
+		{
 			response.writeHead(200, {'Content-Type': 'text/html'});
 			response.write("Hello "+current_user.usrn);
 			response.write('<br><a href="https://www.coinminers.com/signout">Click here to sign out</a>');
