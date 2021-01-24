@@ -14,3 +14,4 @@ ns	IN	A	127.0.0.2
 www 	IN	A	127.0.0.2
 mail	IN	A	127.0.0.3
 admin	IN	A	127.0.0.4
+verify	IN	A	127.0.0.5

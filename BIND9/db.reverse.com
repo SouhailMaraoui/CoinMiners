@@ -14,3 +14,4 @@ $TTL	604800
 2	IN	PTR	www.coinminers.com
 3	IN	PTR	mail.coinminers.com
 4	IN	PTR 	admin.coinminers.com
+5	IN	PTR	verify.coinminers.com
